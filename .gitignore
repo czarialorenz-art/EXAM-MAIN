@@ -1,0 +1,20 @@
+# Build output
+out/
+*.class
+
+# Runtime data (never commit real accounts/answers)
+data/*
+!data/.gitkeep
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+nbproject/
+
+# OS
+.DS_Store
+Thumbs.db

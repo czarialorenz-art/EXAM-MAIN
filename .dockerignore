@@ -1,0 +1,7 @@
+out/
+data/
+EXAM/
+docs/
+test/
+*.class
+.git/
