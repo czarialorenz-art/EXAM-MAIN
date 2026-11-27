@@ -182,7 +182,7 @@ public class AdminMenu extends BaseMenu {
                 }),
                 item("Delete a subject", () -> {
                     Subject s = pickSubject();
-                    if (s != null && confirm("Delete " + s + "?")) {
+                    if (s != null && confirm("Delete " + s + "? Its questions are deleted too. This cannot be undone.")) {
                         services.subjects().deleteSubject(admin, s.getSubjectId());
                         success("Subject deleted.");
                     }

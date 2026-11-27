@@ -242,6 +242,20 @@ public class DataStore {
         results.add(r);
     }
 
+    /** Removes every attempt of an exam. Returns how many were removed. */
+    public int removeSessionsOfExam(String examId) {
+        int before = sessions.size();
+        sessions.values().removeIf(s -> s.getExamId().equals(examId));
+        return before - sessions.size();
+    }
+
+    /** Removes every result of an exam. Returns how many were removed. */
+    public int removeResultsOfExam(String examId) {
+        int before = results.size();
+        results.removeIf(r -> r.getExamId().equals(examId));
+        return before - results.size();
+    }
+
     // ------------------------------------------------------------------ persistence
 
     public synchronized void saveUsers() throws DataPersistenceException {

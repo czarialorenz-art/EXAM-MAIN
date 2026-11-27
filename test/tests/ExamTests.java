@@ -147,6 +147,33 @@ final class ExamTests {
             eq(ExamStatus.ARCHIVED, e.getStatus(), "archived");
             check(!f.s.exams().availableExamsFor(f.alice).contains(e), "hidden from students");
         });
+        test("finished exams with attempts can be deleted, then their subject (with its questions)", () -> {
+            Fixture f = new Fixture();
+            MultipleChoiceQuestion q = f.mcq("Q", 0, 1);
+            Exam fin = f.exam("Final examination", Fixture.minutes(10, true, false), 1, q);
+            Exam other = f.exam("Pinakamahirap na tanong", Fixture.minutes(10, true, false), 1, q);
+            var r1 = f.s.sessions().submit(f.alice, f.s.sessions().startOrResume(f.alice, fin.getExamId()).getSessionId());
+            var r2 = f.s.sessions().submit(f.bob, f.s.sessions().startOrResume(f.bob, other.getExamId()).getSessionId());
+
+            expectThrows(InvalidExamException.class, () -> f.s.exams().delete(f.teacher, fin.getExamId()));
+            expectThrows(exceptions.AccessDeniedException.class, () -> f.s.exams().delete(f.alice, fin.getExamId()));
+            expectThrows(ValidationException.class, () -> f.s.subjects().deleteSubject(f.admin, f.subject.getSubjectId()));
+
+            f.s.exams().close(f.teacher, fin.getExamId());
+            f.s.exams().archive(f.teacher, other.getExamId());
+            f.s.exams().delete(f.teacher, fin.getExamId());
+            f.s.exams().delete(f.teacher, other.getExamId());
+            check(f.s.store().getExams().isEmpty(), "both exams deleted");
+            check(f.s.store().findResult(r1.getResultId()).isEmpty() && f.s.store().findResult(r2.getResultId()).isEmpty(), "results deleted");
+            check(f.s.store().getSessions().isEmpty(), "attempts deleted");
+
+            f.s.subjects().deleteSubject(f.admin, f.subject.getSubjectId());
+            check(f.s.store().findSubject(f.subject.getSubjectId()).isEmpty(), "subject deleted");
+            check(f.s.store().getQuestions().isEmpty(), "its questions deleted");
+            check(f.s.store().findUser(f.alice.getUserId()).isPresent(), "students kept");
+            f.reopen();
+            check(f.s.store().getExams().isEmpty() && f.s.store().getSubjects().isEmpty(), "still deleted after restart");
+        });
         test("a class used only by finished exams can be deleted; results stay unchanged", () -> {
             Fixture f = new Fixture();
             MultipleChoiceQuestion q = f.mcq("Q", 0, 2);

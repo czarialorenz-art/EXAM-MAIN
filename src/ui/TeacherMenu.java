@@ -492,7 +492,7 @@ public class TeacherMenu extends BaseMenu {
                 }
             }
             default -> {
-                if (confirm("Delete '" + e.getTitle() + "' permanently?")) {
+                if (confirm("Delete '" + e.getTitle() + "' permanently? Student attempts and scores for it are deleted too.")) {
                     services.exams().delete(teacher, id);
                     success("Exam deleted.");
                 }

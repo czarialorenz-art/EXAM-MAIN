@@ -465,7 +465,7 @@ route('#/subject/:id', async (main, p) => {
 
   const actions = admin ? [h('button', { onclick: () => subjectForm(s) }, 'Edit'),
     h('button', { class: 'danger', onclick: act(async () => {
-      if (!await confirmBox('Delete subject', 'Delete ' + s.code + '?', 'Delete', true)) return;
+      if (!await confirmBox('Delete subject', 'Delete ' + s.code + '? Its questions are deleted too. This cannot be undone.', 'Delete', true)) return;
       await api('DELETE', '/api/subjects/' + s.id); toast('Subject deleted.'); go('#/subjects');
     }) }, 'Delete')] : [];
 
@@ -829,7 +829,7 @@ route('#/exam/:id', async (main, p) => {
     }
     if (e.status !== 'ARCHIVED' && !draft) actions.push(h('button', { onclick: act(() => lifecycle('archive', 'Archive', 'Archive this exam?')) }, 'Archive'));
     actions.push(h('button', { class: 'danger', onclick: act(async () => {
-      if (!await confirmBox('Delete exam', 'Delete “' + e.title + '”? This is only possible when nobody has attempted it.', 'Delete', true)) return;
+      if (!await confirmBox('Delete exam', 'Delete “' + e.title + '”? If students took it, their attempts and scores for this exam are deleted too. This cannot be undone.', 'Delete', true)) return;
       await api('DELETE', '/api/exams/' + e.id); toast('Exam deleted.'); go('#/exams');
     }) }, 'Delete'));
   }
