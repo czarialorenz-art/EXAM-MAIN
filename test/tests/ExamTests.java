@@ -147,6 +147,35 @@ final class ExamTests {
             eq(ExamStatus.ARCHIVED, e.getStatus(), "archived");
             check(!f.s.exams().availableExamsFor(f.alice).contains(e), "hidden from students");
         });
+        test("a class used only by finished exams can be deleted; results stay unchanged", () -> {
+            Fixture f = new Fixture();
+            MultipleChoiceQuestion q = f.mcq("Q", 0, 2);
+            Exam fin = f.s.exams().createExam(f.teacher, f.subject.getSubjectId(), "Final examination", "");
+            f.s.exams().addQuestion(f.teacher, fin.getExamId(), q.getQuestionId());
+            f.s.exams().assignClass(f.teacher, fin.getExamId(), f.section.getClassId());
+            f.s.exams().publish(f.teacher, fin.getExamId());
+            ExamSession s = f.s.sessions().startOrResume(f.alice, fin.getExamId());
+            f.s.sessions().saveAnswer(f.alice, s.getSessionId(), q.getQuestionId(), List.of("0"));
+            var result = f.s.sessions().submit(f.alice, s.getSessionId());
+
+            Exam draft = f.s.exams().createExam(f.teacher, f.subject.getSubjectId(), "Next quiz", "");
+            f.s.exams().assignClass(f.teacher, draft.getExamId(), f.section.getClassId());
+            expectThrows(ValidationException.class, () -> f.s.subjects().deleteClass(f.admin, f.section.getClassId()));
+            f.s.exams().unassignClass(f.teacher, draft.getExamId(), f.section.getClassId());
+            expectThrows(ValidationException.class, () -> f.s.subjects().deleteClass(f.admin, f.section.getClassId()));
+
+            f.s.exams().close(f.teacher, fin.getExamId());
+            f.s.subjects().deleteClass(f.admin, f.section.getClassId());
+            check(f.s.store().findClass(f.section.getClassId()).isEmpty(), "class deleted");
+            check(f.s.store().findUser(f.alice.getUserId()).isPresent(), "students kept");
+            check(f.subject.isEnrolled(f.alice.getUserId()), "subject enrolment kept");
+            eq(ExamStatus.COMPLETED, fin.getStatus(), "exam still completed");
+            eq(2.0, f.s.grading().getResult(result.getResultId()).getTotalScore(), "score unchanged");
+            eq(1, f.s.reports().resultsForStudent(f.alice).size(), "student still sees the result");
+            check(f.s.exams().assignmentSummary(fin).contains("(deleted class)"), "summary marks the class as deleted");
+            f.reopen();
+            check(f.s.store().findClass(f.section.getClassId()).isEmpty(), "still deleted after restart");
+        });
         test("shuffling is fixed per attempt (same order after resume)", () -> {
             Fixture f = new Fixture();
             List<MultipleChoiceQuestion> qs = List.of(f.mcq("1", 0, 1), f.mcq("2", 0, 1), f.mcq("3", 0, 1), f.mcq("4", 0, 1));

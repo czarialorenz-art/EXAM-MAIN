@@ -120,9 +120,17 @@ public class SubjectService {
     public void deleteClass(User actor, String classId) throws QuizSystemException {
         AccessControl.requireRole(actor, Role.ADMIN);
         SchoolClass c = getSchoolClass(classId);
-        long exams = store.getExams().stream().filter(e -> e.getAssignedClassIds().contains(classId)).count();
+        // Finished exams (completed or archived) no longer block the delete: their attempts and results
+        // stay unchanged and the exam lists the class as deleted. Draft, upcoming or open exams still block it.
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        long exams = store.getExams().stream()
+                .filter(e -> e.getAssignedClassIds().contains(classId))
+                .filter(e -> e.getEffectiveStatus(now) != models.ExamStatus.COMPLETED
+                        && e.getEffectiveStatus(now) != models.ExamStatus.ARCHIVED)
+                .count();
         if (exams > 0) {
-            throw new ValidationException("Cannot delete " + c.getName() + ": it is assigned to " + exams + " exam(s).");
+            throw new ValidationException("Cannot delete " + c.getName() + ": it is assigned to " + exams
+                    + " exam(s) that are not finished yet. Unassign the class from them first.");
         }
         boolean questionsChanged = false;
         for (models.Question q : store.getQuestions()) {

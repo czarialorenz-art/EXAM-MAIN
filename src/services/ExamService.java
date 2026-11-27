@@ -335,7 +335,7 @@ public class ExamService {
         }
         if (!e.getAssignedClassIds().isEmpty()) {
             parts.add("classes: " + e.getAssignedClassIds().stream()
-                    .map(id -> store.findClass(id).map(SchoolClass::getName).orElse(id)).collect(Collectors.joining(", ")));
+                    .map(id -> store.findClass(id).map(SchoolClass::getName).orElse("(deleted class)")).collect(Collectors.joining(", ")));
         }
         if (!e.getAssignedStudentIds().isEmpty()) {
             parts.add(e.getAssignedStudentIds().size() + " individual student(s)");
