@@ -261,10 +261,24 @@ public class ExamService {
         store.saveExams();
     }
 
+    /**
+     * Deletes an exam. An exam nobody has attempted can always be deleted. A finished exam
+     * (completed or archived) can be deleted together with all of its attempts and results; this
+     * cannot be undone. An exam that is still open or upcoming and has attempts cannot be deleted:
+     * close it first so no student loses an exam they are taking.
+     */
     public void delete(User actor, String examId) throws QuizSystemException {
-        requireOwned(actor, examId);
+        Exam e = requireOwned(actor, examId);
         if (hasSessions(examId)) {
-            throw new InvalidExamException("Students have attempted this exam. Archive it instead of deleting it.");
+            ExamStatus st = e.getEffectiveStatus(now());
+            if (st != ExamStatus.COMPLETED && st != ExamStatus.ARCHIVED) {
+                throw new InvalidExamException("Students have attempted this exam and it is still "
+                        + st.getLabel().toLowerCase() + ". Close it first, then delete it.");
+            }
+            store.removeResultsOfExam(examId);
+            store.removeSessionsOfExam(examId);
+            store.saveResults();
+            store.saveSessions();
         }
         store.removeExam(examId);
         store.saveExams();

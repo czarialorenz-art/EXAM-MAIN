@@ -62,13 +62,19 @@ public class SubjectService {
         AccessControl.requireRole(actor, Role.ADMIN);
         Subject s = getSubject(subjectId);
         long exams = store.getExams().stream().filter(e -> e.getSubjectId().equals(subjectId)).count();
-        long questions = store.getQuestions().stream().filter(q -> q.getSubjectId().equals(subjectId)).count();
-        if (exams > 0 || questions > 0) {
-            throw new ValidationException("Cannot delete " + s.getCode() + ": it has " + exams + " exam(s) and "
-                    + questions + " question(s).");
+        if (exams > 0) {
+            throw new ValidationException("Cannot delete " + s.getCode() + ": it still has " + exams
+                    + " exam(s). Delete its exams first.");
         }
+        // With no exams left, the subject's question bank is not used anywhere, so it is deleted too.
+        List<String> questionIds = store.getQuestions().stream().filter(q -> q.getSubjectId().equals(subjectId))
+                .map(models.Question::getQuestionId).collect(Collectors.toList());
+        questionIds.forEach(store::removeQuestion);
         store.removeSubject(subjectId);
         store.saveSubjects();
+        if (!questionIds.isEmpty()) {
+            store.saveQuestions();
+        }
     }
 
     /** Assigns a teacher (or unassigns when teacherId is null). */
